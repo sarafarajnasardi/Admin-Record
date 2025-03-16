@@ -2,6 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Lock, Mail, EyeOff, Eye, AlertCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
+import axios from 'axios';
+
+
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -17,9 +22,16 @@ const Login = () => {
     setError('');
     
     try {
-      // Simulating API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      // Replace with actual API call
+      const body = {
+        email:email,
+        password:password,
+      };
+     const response= await axios.post("http://localhost:5000/api/admin/auth/admin-login",body);
+      if (!response.data.success) {
+        throw new Error(response.data.message);
+      }
+      setEmail('');
+      setPassword('');
       navigate('/dashboard');
     } catch (err) {
       setError('Invalid email or password');
@@ -153,7 +165,7 @@ const Login = () => {
           <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
             <p className="text-center text-gray-600 text-sm">
               Don't have an account?{' '}
-              <Link to="/register" className="inline-flex items-center text-blue-600 hover:text-blue-800">
+              <Link to="/auth/register" className="inline-flex items-center text-blue-600 hover:text-blue-800">
             <ArrowLeft size={16} className="mr-1" />
             <span>Register</span>
           </Link>

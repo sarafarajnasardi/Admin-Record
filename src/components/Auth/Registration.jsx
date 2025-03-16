@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Lock, Mail, User, EyeOff, Eye, AlertCircle, Clipboard, ArrowLeft } from 'lucide-react';
+import axios from 'axios';
 
 const Registration = () => {
   const [formData, setFormData] = useState({
@@ -37,10 +38,25 @@ const Registration = () => {
     }
     
     try {
+      const body = {
+        userName:formData.fullName,
+        email:formData.email,
+        password:formData.password,
+      };      
       // Simulating API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response=await axios.post("http://localhost:5000/api/admin/auth/admin-register",body);
+      if (!response.data.success) {
+        throw new Error(response.data.message);
+      }
+      setFormData({
+        fullName: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        role: 'admin',
+      });      
       // Replace with actual API call
-      navigate('/login', { state: { message: 'Registration successful. Please log in.' } });
+      navigate('/auth/login', { state: { message: 'Registration successful. Please log in.' } });
     } catch (err) {
       setError('Registration failed. Please try again.');
     } finally {

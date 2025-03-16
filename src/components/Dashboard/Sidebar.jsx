@@ -1,17 +1,19 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, Package, Truck, CreditCard, Users } from 'lucide-react';
+import { LayoutDashboard, Package, Truck, CreditCard, Users,Plus} from 'lucide-react';
+import { AdminContext } from '../../utils/admin_context';
+import { useContext } from'react';
 
 const Sidebar = () => {
   const location = useLocation();
-
+  const { admin } = useContext(AdminContext);
   // Sidebar links with proper icons
   const links = [
     {
       name: 'Overview',
       icon: <LayoutDashboard size={20} />,
-      path: '/dashboard/overview',
+      path: '/dashboard',
     },
     {
       name: 'Orders',
@@ -28,11 +30,16 @@ const Sidebar = () => {
       icon: <CreditCard size={20} />,
       path: '/dashboard/payments',
     },
-    {
-      name: 'Artisans',
-      icon: <Users size={20} />,
-      path: '/dashboard/artisans',
-    },
+{
+  name: 'Add Product',
+  icon: <Plus size={20} />,
+  path: '/dashboard/add',
+},
+{
+  name: 'Products',
+  icon: <Package size={20} />,
+  path: '/dashboard/products',
+}
   ];
 
   return (
@@ -79,8 +86,8 @@ const Sidebar = () => {
         <div className="flex items-center p-2">
           <div className="w-8 h-8 rounded-full bg-indigo-500 mr-2"></div>
           <div>
-            <p className="text-sm font-medium">Admin User</p>
-            <p className="text-xs text-gray-400">admin@example.com</p>
+            <p className="text-sm font-medium">{admin.userName}</p>
+            <p className="text-xs text-gray-400">{admin.email}</p>
           </div>
         </div>
       </div>
