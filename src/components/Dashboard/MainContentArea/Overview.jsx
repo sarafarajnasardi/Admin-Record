@@ -12,10 +12,9 @@ import {
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 const Overview = () => {
-  // State for time period filtering
+  
   const [timePeriod, setTimePeriod] = useState('month');
 
-  // Sample data for charts
   const salesData = [
     { name: 'Jan', sales: 4000, orders: 240 },
     { name: 'Feb', sales: 3000, orders: 198 },

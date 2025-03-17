@@ -2,53 +2,85 @@ import React, { useEffect, useState, useContext } from 'react';
 import axios from 'axios';
 import { ImageOff, Loader2, Edit, Trash2, Tag, Package, Search, RefreshCw } from 'lucide-react';
 import { AdminContext } from '../../../../utils/admin_context';
+import { toast } from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
+import EditProduct from './edit_product';
+import StockBadge from './stockbadge';
 
 const ProductList = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [sortBy, setSortBy] = useState('title');
   const [sortOrder, setSortOrder] = useState('asc');
   const { admin } = useContext(AdminContext);
+  const [editingProduct, setEditingProduct] = useState(null);
 
   const fetchProducts = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const res = await axios.get('http://localhost:5000/api/admin/products/get', {
+      const res = await axios.get(`http://localhost:5000/api/admin/products/get`, {
         params: {
-          adminId: admin.id,
+          adminId: admin?.id,
         },
       });
       setProducts(res.data.data || []);
     } catch (err) {
       console.error('Failed to fetch products:', err);
+      setError('Failed to load products. Please try again.');
+      toast.error('Failed to load products. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchProducts();
-  }, [admin]);
+    if (admin?.id) {
+      fetchProducts();
+    }
+  }, [admin?.id]);
 
-  // Get unique categories
-  const categories = [...new Set(products.map(product => product.category))];
+  const deleteProduct = async (id) => {
+    if (!id) return;
+    
+    if (window.confirm('Are you sure you want to delete this product?')) {
+      try {
+        const response = await axios.delete(`http://localhost:5000/api/admin/products/delete/${id}`);
+        if (response.status === 200) {
+          setProducts(products.filter(product => product._id !== id));
+          toast.success('Product deleted successfully');
+        }
+      } catch (err) {
+        console.error('Failed to delete product:', err);
+        toast.error('Failed to delete product. Please try again.');
+      }
+    }
+  };
 
-  // Filter and sort products
+  const handleProductUpdate = (updatedProduct) => {
+    setProducts(products.map(product => 
+      product._id === updatedProduct._id ? updatedProduct : product
+    ));
+  };
+
+  const categories = [...new Set(products.map(product => product.category).filter(Boolean))];
+
   const filteredProducts = products
     .filter(product => 
-      product.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
+      (product.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) &&
       (selectedCategory === '' || product.category === selectedCategory)
     )
     .sort((a, b) => {
       let comparison = 0;
       if (sortBy === 'title') {
-        comparison = a.title.localeCompare(b.title);
+        comparison = (a.title || '').localeCompare(b.title || '');
       } else if (sortBy === 'price') {
-        comparison = a.price - b.price;
+        comparison = (a.price || 0) - (b.price || 0);
       } else if (sortBy === 'stock') {
-        comparison = a.totalStock - b.totalStock;
+        comparison = (a.totalStock || 0) - (b.totalStock || 0);
       }
       return sortOrder === 'asc' ? comparison : -comparison;
     });
@@ -62,21 +94,9 @@ const ProductList = () => {
     }
   };
 
-  // Calculate discount percentage
   const calculateDiscount = (price, salePrice) => {
-    if (!price || !salePrice || price <= salePrice) return 0;
-    return Math.round(((price - salePrice) / price) * 100);
-  };
-
-  // Badge for stock status
-  const StockBadge = ({ stock }) => {
-    if (stock === 0) {
-      return <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">Out of Stock</span>;
-    } else if (stock < 10) {
-      return <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Low Stock</span>;
-    } else {
-      return <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">In Stock</span>;
-    }
+    if (!price || !salePrice || Number(price) <= Number(salePrice)) return 0;
+    return Math.round(((Number(price) - Number(salePrice)) / Number(price)) * 100);
   };
 
   return (
@@ -138,6 +158,8 @@ const ProductList = () => {
           </div>
         </div>
 
+        {error && <div className="text-red-500 text-center">{error}</div>}
+
         {loading ? (
           <div className="flex justify-center items-center h-64 bg-white rounded-lg shadow-md">
             <Loader2 className="animate-spin w-8 h-8 text-indigo-600" />
@@ -161,7 +183,7 @@ const ProductList = () => {
                 >
                   <div className="relative">
                     <img
-                      src={product.image}
+                      src={product.image || 'https://via.placeholder.com/400x300.png?text=No+Image'}
                       alt={product.title}
                       className="w-full h-56 object-cover"
                       onError={(e) => {
@@ -178,10 +200,24 @@ const ProductList = () => {
                     <div className="flex justify-between items-start mb-2">
                       <h3 className="text-lg font-semibold text-gray-800 truncate">{product.title}</h3>
                       <div className="flex space-x-1">
-                        <button className="p-1 text-gray-500 hover:text-indigo-600 transition">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingProduct(product);
+                          }}
+                          className="p-1 text-gray-500 hover:text-indigo-600 transition"
+                          aria-label="Edit product"
+                        >
                           <Edit className="w-4 h-4" />
                         </button>
-                        <button className="p-1 text-gray-500 hover:text-red-600 transition">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteProduct(product._id);
+                          }} 
+                          className="p-1 text-gray-500 hover:text-red-600 transition"
+                          aria-label="Delete product"
+                        >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
@@ -189,26 +225,26 @@ const ProductList = () => {
                     
                     <div className="flex items-center mb-3">
                       <Tag className="w-4 h-4 text-gray-500 mr-1" />
-                      <span className="text-sm text-gray-500">{product.category}</span>
+                      <span className="text-sm text-gray-500">{product.category || 'Uncategorized'}</span>
                     </div>
                     
                     <div className="flex justify-between items-center mb-3">
                       <div>
-                        {product.salePrice < product.price ? (
+                        {product.salePrice && Number(product.salePrice) < Number(product.price) ? (
                           <div className="flex items-center">
                             <span className="text-lg font-bold text-gray-800">₹{product.salePrice}</span>
                             <span className="ml-2 text-sm text-gray-500 line-through">₹{product.price}</span>
                           </div>
                         ) : (
-                          <span className="text-lg font-bold text-gray-800">₹{product.price}</span>
+                          <span className="text-lg font-bold text-gray-800">₹{product.price || 0}</span>
                         )}
                       </div>
-                      <StockBadge stock={product.totalStock} />
+                      <StockBadge stock={product.totalStock || 0} />
                     </div>
                     
                     <div className="flex items-center text-gray-600 text-sm">
                       <Package className="w-4 h-4 mr-1" />
-                      <span>{product.totalStock} in stock</span>
+                      <span>{product.totalStock || 0} in stock</span>
                     </div>
                   </div>
                 </div>
@@ -221,6 +257,13 @@ const ProductList = () => {
           Showing {filteredProducts.length} of {products.length} products
         </div>
       </div>
+      {editingProduct && (
+        <EditProduct 
+          product={editingProduct} 
+          onClose={() => setEditingProduct(null)} 
+          onProductUpdated={handleProductUpdate}
+        />
+      )}
     </div>
   );
 };

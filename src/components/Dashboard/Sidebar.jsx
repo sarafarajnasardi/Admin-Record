@@ -1,13 +1,16 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, Package, Truck, CreditCard, Users,Plus} from 'lucide-react';
+import { LayoutDashboard, Package, Truck, CreditCard, Users, Plus, LogOut } from 'lucide-react';
 import { AdminContext } from '../../utils/admin_context';
-import { useContext } from'react';
+import { useContext } from 'react';
+import axios from 'axios';
 
 const Sidebar = () => {
   const location = useLocation();
-  const { admin } = useContext(AdminContext);
+  const navigate = useNavigate();
+  const { admin, setAdmin } = useContext(AdminContext);
+
   // Sidebar links with proper icons
   const links = [
     {
@@ -30,17 +33,34 @@ const Sidebar = () => {
       icon: <CreditCard size={20} />,
       path: '/dashboard/payments',
     },
-{
-  name: 'Add Product',
-  icon: <Plus size={20} />,
-  path: '/dashboard/add',
-},
-{
-  name: 'Products',
-  icon: <Package size={20} />,
-  path: '/dashboard/products',
-}
+    {
+      name: 'Add Product',
+      icon: <Plus size={20} />,
+      path: '/dashboard/add',
+    },
+    {
+      name: 'Products',
+      icon: <Package size={20} />,
+      path: '/dashboard/products',
+    }
   ];
+
+  const handleSignOut = async () => {
+    try {
+      const response = await axios.post("http://localhost:5000/api/admin/auth/admin-logout", {}, {
+        withCredentials: true 
+      });
+      
+      if (!response.data.success) {
+        throw new Error(response.data.message);
+      }
+      setAdmin(null);
+      
+      navigate('/auth/login');
+    } catch (err) {
+      console.error('Error signing out:', err);
+    }
+  };
 
   return (
     <div className="w-64 h-screen bg-gray-800 text-white p-4 flex flex-col">
@@ -54,15 +74,15 @@ const Sidebar = () => {
         <ul className="space-y-2">
           {links.map((link) => (
             <li key={link.path}>
-              <Link 
+              <Link
                 to={link.path}
                 className={`flex items-center p-3 rounded-lg transition-colors duration-200 ${
-                  location.pathname === link.path 
-                    ? 'bg-indigo-600 text-white' 
+                  location.pathname === link.path
+                    ? 'bg-indigo-600 text-white'
                     : 'text-gray-300 hover:bg-gray-700'
                 }`}
               >
-                <motion.div 
+                <motion.div
                   whileHover={{ scale: 1.1 }}
                   className="mr-3 text-gray-300"
                 >
@@ -70,7 +90,7 @@ const Sidebar = () => {
                 </motion.div>
                 <span>{link.name}</span>
                 {location.pathname === link.path && (
-                  <motion.div 
+                  <motion.div
                     className="ml-auto h-2 w-2 rounded-full bg-white"
                     layoutId="indicator"
                   />
@@ -90,6 +110,15 @@ const Sidebar = () => {
             <p className="text-xs text-gray-400">{admin.email}</p>
           </div>
         </div>
+        
+        {/* Sign Out Button */}
+        <button
+          onClick={handleSignOut}
+          className="mt-3 w-full flex items-center p-3 rounded-lg text-gray-300 hover:bg-red-700 hover:text-white transition-colors duration-200"
+        >
+          <LogOut size={20} className="mr-3" />
+          <span>Sign Out</span>
+        </button>
       </div>
     </div>
   );
