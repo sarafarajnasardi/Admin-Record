@@ -55,7 +55,6 @@ const Sidebar = () => {
         throw new Error(response.data.message);
       }
       setAdmin(null);
-      
       navigate('/auth/login');
     } catch (err) {
       console.error('Error signing out:', err);
